@@ -11,21 +11,33 @@ Controls:
 
 import cv2
 import numpy as np
+import yaml
 from pathlib import Path
+from huggingface_hub import snapshot_download
 from lerobot.datasets import LeRobotDataset
 from typing import Optional
 import argparse
-import sys
+
+REPO_ROOT = Path(__file__).parent
+DATASETS_DIR = REPO_ROOT / "datasets"
 
 
 class EpisodeViewer:
-    def __init__(self, dataset_path: Path):
+    def __init__(self, dataset_path: Path, repo_id: str, display_scale: float = 2.5):
         """Initialize the episode viewer."""
-        # Load dataset using LeRobot
-        self.dataset = LeRobotDataset(str(dataset_path))
+        # Load dataset using LeRobot (root points to the local snapshot dir)
+        self.dataset = LeRobotDataset(repo_id, root=str(dataset_path))
+
+        self.display_scale = display_scale
 
         self.current_episode = 0
         self.total_episodes = self.dataset.num_episodes
+
+        self.repo_id = repo_id
+        self.annotations: dict[int, str] = {}
+        self.temp_labels_path = REPO_ROOT / "temp_labels.yaml"
+        if self.temp_labels_path.exists():
+            self.temp_labels_path.unlink()
 
         # Build episode index mapping
         self._build_episode_ranges()
@@ -33,10 +45,21 @@ class EpisodeViewer:
         print(
             f"Loaded dataset with {self.total_episodes} episodes and {len(self.dataset)} total frames"
         )
-        print("\nControls:")
-        print("  n / RIGHT ARROW - Next episode")
-        print("  p / LEFT ARROW - Previous episode")
-        print("  q / ESC - Quit")
+        print(f"Annotating: {self.repo_id}")
+        print(f"Writing to: {self.temp_labels_path}")
+        print("\nLabels (free-form, type as string after each clip):")
+        print("  s        success")
+        print("  p        partial success")
+        print("  f        failure")
+        print("  st / pt  add 't' suffix for termination failure")
+        print("  s(p)     parenthesised qualifiers are accepted (e.g. p(s?), s(p))")
+        print("  n        no annotation marker")
+        print("\nPrompt commands:")
+        print("  <enter>  replay current clip")
+        print("  b        back (previous episode, no save)")
+        print("  skip     advance without saving a label")
+        print("  q        quit")
+        print("  <text>   save <text> as the label and advance")
         print()
 
     def _build_episode_ranges(self):
@@ -124,7 +147,7 @@ class EpisodeViewer:
         return frames_primary, frames_wrist, total_frames
 
     def display_episode(self, episode_idx: int):
-        """Display the last 3 seconds of an episode with side-by-side cameras."""
+        """Display the clip in a replay loop until the user labels/skips/quits."""
         print(
             f"Loading episode {episode_idx + 1}/{self.total_episodes}...",
             end="",
@@ -142,24 +165,66 @@ class EpisodeViewer:
 
             print(f" OK ({len(frames_primary)} frames, {total_frames} total)")
 
-            # Play frames
             displayed_frames = min(len(frames_primary), len(frames_wrist))
             clip_start_frame = total_frames - displayed_frames + 1
-            action = self._play_frames_side_by_side(
-                frames_primary,
-                frames_wrist,
-                episode_idx,
-                total_episode_frames=total_frames,
-                clip_start_frame=clip_start_frame,
-            )
 
-            return action
+            while True:
+                play_result = self._play_frames_side_by_side(
+                    frames_primary,
+                    frames_wrist,
+                    episode_idx,
+                    total_episode_frames=total_frames,
+                    clip_start_frame=clip_start_frame,
+                )
+                if play_result == "quit":
+                    return "quit"
+
+                action = self._prompt_for_label(episode_idx)
+                if action == "replay":
+                    continue
+                if action in ("prev", "skip", "quit"):
+                    return action
+                if action.startswith("label:"):
+                    label = action[len("label:") :]
+                    self._save_label(episode_idx, label)
+                    return "next"
+                return action
         except Exception as e:
             print(f" ERROR: {e}")
             import traceback
 
             traceback.print_exc()
             return None
+
+    def _prompt_for_label(self, episode_idx: int) -> str:
+        """Read a label / navigation command from the terminal."""
+        prompt = (
+            f"Episode {episode_idx + 1}/{self.total_episodes} "
+            f"— label / b / skip / q (enter=replay): "
+        )
+        try:
+            raw = input(prompt)
+        except EOFError:
+            return "quit"
+        text = raw.strip()
+        if text == "":
+            return "replay"
+        if text == "q":
+            return "quit"
+        if text == "b":
+            return "prev"
+        if text == "skip":
+            return "skip"
+        return f"label:{text}"
+
+    def _save_label(self, episode_idx: int, label: str) -> None:
+        """Persist annotations to temp_labels.yaml atomically."""
+        self.annotations[episode_idx] = label
+        data = {self.repo_id: dict(sorted(self.annotations.items()))}
+        tmp = self.temp_labels_path.with_suffix(".yaml.tmp")
+        tmp.write_text(yaml.safe_dump(data, sort_keys=False, default_flow_style=False))
+        tmp.replace(self.temp_labels_path)
+        print(f"  saved: ep {episode_idx} -> {label!r}")
 
     def _play_frames_side_by_side(
         self,
@@ -173,11 +238,11 @@ class EpisodeViewer:
         """Display frames side by side with opencv."""
         window_name = "Episode Viewer"
 
-        # Create window once if it doesn't exist
-        try:
-            cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE)
-        except:
+        # Create a resizable window once. WINDOW_NORMAL lets us call
+        # resizeWindow() — WINDOW_AUTOSIZE would ignore that.
+        if not getattr(self, "_window_created", False):
             cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            self._window_created = True
 
         for frame_idx, (frame_p, frame_w) in enumerate(
             zip(frames_primary, frames_wrist)
@@ -238,7 +303,7 @@ class EpisodeViewer:
             # Show window info
             cv2.putText(
                 side_by_side,
-                "n/RIGHT: Next  p/LEFT: Prev  q/ESC: Quit",
+                "Type label in terminal after clip  (q/ESC: quit)",
                 (10, side_by_side.shape[0] - 10),
                 font,
                 0.6,
@@ -264,8 +329,30 @@ class EpisodeViewer:
                 1,
             )
 
+            # Upscale the composite for a larger window
+            if self.display_scale != 1.0:
+                side_by_side = cv2.resize(
+                    side_by_side,
+                    None,
+                    fx=self.display_scale,
+                    fy=self.display_scale,
+                    interpolation=cv2.INTER_LINEAR,
+                )
+
             # Show frame
             cv2.imshow(window_name, side_by_side)
+
+            # Force the window size to match the (upscaled) image. Must happen
+            # after imshow on some OpenCV builds. Done once per playback session.
+            if not getattr(self, "_window_sized", False):
+                h, w = side_by_side.shape[:2]
+                cv2.resizeWindow(window_name, w, h)
+                self._window_sized = True
+                print(
+                    f"  display: native {frame_p.shape[1] // 1}x{frame_p.shape[0]} (primary) "
+                    f"+ {frame_w.shape[1]}x{frame_w.shape[0]} (wrist) "
+                    f"-> window {w}x{h} @ scale {self.display_scale}"
+                )
 
             # Wait for the appropriate frame duration (in ms)
             frame_duration_ms = int(1000 / fps)
@@ -273,12 +360,8 @@ class EpisodeViewer:
 
             if key == ord("q") or key == 27:  # q or ESC
                 return "quit"
-            elif key == ord("n") or key == 83:  # n or RIGHT Arrow
-                return "next"
-            elif key == ord("p") or key == 81:  # p or LEFT Arrow
-                return "prev"
 
-        return None
+        return "clip_ended"
 
     def run(self):
         """Main loop for browsing episodes."""
@@ -289,14 +372,13 @@ class EpisodeViewer:
                 if action == "quit":
                     print("\nExiting...")
                     break
-                elif action == "next":
-                    self.current_episode = (
-                        self.current_episode + 1
-                    ) % self.total_episodes
+                elif action in ("next", "skip"):
+                    if self.current_episode + 1 >= self.total_episodes:
+                        print("\nReached end of dataset. Exiting...")
+                        break
+                    self.current_episode += 1
                 elif action == "prev":
-                    self.current_episode = (
-                        self.current_episode - 1
-                    ) % self.total_episodes
+                    self.current_episode = max(0, self.current_episode - 1)
         finally:
             cv2.destroyAllWindows()
 
@@ -310,32 +392,31 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dataset-name",
-        default="stack_lego_simple_pi05_deploy_2",
+        default="siemens_pi05_deploy_1",
         help="Dataset name",
+    )
+    parser.add_argument(
+        "--display-scale",
+        type=float,
+        default=2.5,
+        help="Upscale factor applied to the side-by-side composite (1.0 = original)",
     )
     args = parser.parse_args()
 
-    snapshots_dir = (
-        Path.home()
-        / ".cache"
-        / "huggingface"
-        / "hub"
-        / f"datasets--{args.repo_owner}--{args.dataset_name}"
-        / "snapshots"
-    )
+    repo_id = f"{args.repo_owner}/{args.dataset_name}"
+    dataset_path = DATASETS_DIR / repo_id
 
-    if not snapshots_dir.exists() or not snapshots_dir.is_dir():
-        print(f"Error: Snapshots directory not found at {snapshots_dir}")
-        sys.exit(1)
-
-    snapshot_subdirs = sorted([p for p in snapshots_dir.iterdir() if p.is_dir()])
-    if not snapshot_subdirs:
-        print(f"Error: No snapshot subdirectories found in {snapshots_dir}")
-        sys.exit(1)
-
-    dataset_path = snapshot_subdirs[0]
+    if dataset_path.exists():
+        print(f"Found dataset at {dataset_path}")
+    else:
+        print(f"Dataset not found locally; downloading {repo_id} to {dataset_path}")
+        snapshot_download(
+            repo_id=repo_id,
+            repo_type="dataset",
+            local_dir=str(dataset_path),
+        )
 
     print(f"Using dataset path: {dataset_path}")
 
-    viewer = EpisodeViewer(dataset_path)
+    viewer = EpisodeViewer(dataset_path, repo_id, display_scale=args.display_scale)
     viewer.run()

@@ -8,6 +8,8 @@ import os
 
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 
+import dataclasses
+import inspect
 import json
 import logging
 from pathlib import Path
@@ -19,7 +21,7 @@ import yaml
 from huggingface_hub import snapshot_download
 from huggingface_hub.utils import disable_progress_bars
 
-from config import LegoSimpleDiffusion, LegoSimpleDitflow, LegoSimplePi05
+import config
 
 disable_progress_bars()
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
@@ -29,7 +31,11 @@ DATASETS_DIR = REPO_ROOT / "datasets"
 LABELS_PATH = REPO_ROOT / "labels.yaml"
 OUTPUT_PATH = REPO_ROOT / "analyze_rollouts_output.txt"
 
-TASKS = [LegoSimpleDiffusion(), LegoSimpleDitflow(), LegoSimplePi05()]
+TASKS = [
+    cls()
+    for _, cls in inspect.getmembers(config, inspect.isclass)
+    if dataclasses.is_dataclass(cls) and cls.__module__ == config.__name__
+]
 
 
 FT_COL = "observation.state.sensors_bota_ft_sensor"
@@ -82,6 +88,25 @@ def load_dataset(
     return lengths, fps, peak_force, peak_torque
 
 
+def classify(label: str) -> str:
+    """Map a raw annotation to 'success', 'partial', or 'failure'.
+
+    Rules: leading char is primary; `st`/`pt` demote to partial; `n` is partial.
+    """
+    if label in ("st", "pt"):
+        return "partial"
+    if label == "n":
+        return "partial"
+    head = label[0]
+    if head == "s":
+        return "success"
+    if head == "p":
+        return "partial"
+    if head == "f":
+        return "failure"
+    raise ValueError(f"Unknown label: {label!r}")
+
+
 def stats(values):
     if not values:
         return None
@@ -116,10 +141,19 @@ def main() -> None:
         succ_peak_torque: list[float] = []
         all_peak_force: list[float] = []
         all_peak_torque: list[float] = []
+        n_labeled = 0
+        n_partial = 0
+        n_failure = 0
 
-        for repo_id in task.datasets:
+        for repo_id in getattr(task, "datasets"):
             ds_labels = labels.get(repo_id, {})
-            success_eps = {ep for ep, lbl in ds_labels.items() if lbl == "s"}
+            ep_class = {ep: classify(lbl) for ep, lbl in ds_labels.items()}
+            success_eps = {ep for ep, c in ep_class.items() if c == "success"}
+            partial_eps = {ep for ep, c in ep_class.items() if c == "partial"}
+            failure_eps = {ep for ep, c in ep_class.items() if c == "failure"}
+            n_labeled += len(ep_class)
+            n_partial += len(partial_eps)
+            n_failure += len(failure_eps)
             lengths_by_idx, fps, peak_force, peak_torque = load_dataset(repo_id)
 
             succ_frames.extend(int(lengths_by_idx.loc[ep]) for ep in success_eps)
@@ -129,11 +163,16 @@ def main() -> None:
             all_peak_force.extend(peak_force.values())
             all_peak_torque.extend(peak_torque.values())
 
+        n_success = len(succ_frames)
         results.append(
             {
                 "name": task_name,
-                "n_success": len(succ_frames),
-                "n_total": len(all_peak_force),
+                "n_success": n_success,
+                "n_partial": n_partial,
+                "n_failure": n_failure,
+                "n_labeled": n_labeled,
+                "pct_success": (n_success / n_labeled * 100) if n_labeled else None,
+                "pct_partial": ((n_success + n_partial) / n_labeled * 100) if n_labeled else None,
                 "frames": stats(succ_frames),
                 "seconds": stats(succ_seconds),
                 "succ_force": stats(succ_peak_force),
@@ -153,7 +192,13 @@ def main() -> None:
     emit(" Per-task stats (successful rollouts have label == 's')")
     emit("=" * 100)
     for r in results:
-        emit(f"{r['name']}  (n_success={r['n_success']}, n_total={r['n_total']})")
+        pct_s = f"{r['pct_success']:.1f}%" if r["pct_success"] is not None else "n/a"
+        pct_p = f"{r['pct_partial']:.1f}%" if r["pct_partial"] is not None else "n/a"
+        emit(
+            f"{r['name']}  (n_success={r['n_success']}, n_partial={r['n_partial']}, "
+            f"n_failure={r['n_failure']}, n_labeled={r['n_labeled']}, "
+            f"success={pct_s}, partial={pct_p})"
+        )
         emit(f"    frames                : {fmt_stats(r['frames'], 1)}")
         emit(f"    seconds               : {fmt_stats(r['seconds'], 2)}")
         emit(f"    peak |F| success (N)  : {fmt_stats(r['succ_force'], 2)}")

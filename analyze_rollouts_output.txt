@@ -2,27 +2,51 @@
 ====================================================================================================
  Per-task stats (successful rollouts have label == 's')
 ====================================================================================================
-LegoSimpleDiffusion  (n_success=28, n_total=63)
-    frames                : min=250.0 median=453.0 mean=474.8 max=1138.0
-    seconds               : min=16.67 median=30.20 mean=31.65 max=75.87
-    peak |F| success (N)  : min=15.11 median=18.18 mean=18.54 max=25.93
-    peak |M| success (N·m): min=0.366 median=1.430 mean=1.408 max=2.138
+LegoSimpleDiffusion  (n_success=29, n_partial=29, n_failure=5, n_labeled=63, success=46.0%, partial=92.1%)
+    frames                : min=250.0 median=449.0 mean=471.1 max=1138.0
+    seconds               : min=16.67 median=29.93 mean=31.41 max=75.87
+    peak |F| success (N)  : min=15.11 median=18.16 mean=18.48 max=25.93
+    peak |M| success (N·m): min=0.366 median=1.420 mean=1.395 max=2.138
     peak |F| all     (N)  : min=3.58 median=17.74 mean=17.29 max=30.02
     peak |M| all     (N·m): min=0.362 median=1.366 mean=1.342 max=2.317
 
-LegoSimpleDitflow  (n_success=25, n_total=59)
-    frames                : min=303.0 median=472.0 mean=510.4 max=827.0
-    seconds               : min=20.20 median=31.47 mean=34.03 max=55.13
-    peak |F| success (N)  : min=10.77 median=17.49 mean=19.68 max=40.27
-    peak |M| success (N·m): min=0.409 median=1.175 mean=1.197 max=2.061
+LegoSimpleDitflow  (n_success=33, n_partial=18, n_failure=8, n_labeled=59, success=55.9%, partial=86.4%)
+    frames                : min=270.0 median=421.0 mean=485.7 max=827.0
+    seconds               : min=18.00 median=28.07 mean=32.38 max=55.13
+    peak |F| success (N)  : min=6.99 median=17.08 mean=17.88 max=40.27
+    peak |M| success (N·m): min=0.409 median=1.085 mean=1.152 max=2.061
     peak |F| all     (N)  : min=4.05 median=16.15 mean=15.76 max=40.27
     peak |M| all     (N·m): min=0.319 median=1.073 mean=1.089 max=2.061
 
-LegoSimplePi05  (n_success=2, n_total=53)
-    frames                : min=588.0 median=769.5 mean=769.5 max=951.0
-    seconds               : min=39.20 median=51.30 mean=51.30 max=63.40
-    peak |F| success (N)  : min=17.56 median=18.34 mean=18.34 max=19.12
-    peak |M| success (N·m): min=1.013 median=1.108 mean=1.108 max=1.202
+LegoSimplePi05  (n_success=3, n_partial=38, n_failure=11, n_labeled=52, success=5.8%, partial=78.8%)
+    frames                : min=588.0 median=951.0 mean=1088.3 max=1726.0
+    seconds               : min=39.20 median=63.40 mean=72.56 max=115.07
+    peak |F| success (N)  : min=11.91 median=17.56 mean=16.20 max=19.12
+    peak |M| success (N·m): min=1.013 median=1.202 mean=1.300 max=1.684
     peak |F| all     (N)  : min=2.03 median=13.78 mean=12.60 max=22.89
     peak |M| all     (N·m): min=0.133 median=0.873 mean=0.914 max=2.628
+
+SiemensDiffusion  (n_success=15, n_partial=34, n_failure=2, n_labeled=51, success=29.4%, partial=96.1%)
+    frames                : min=301.0 median=385.0 mean=425.5 max=674.0
+    seconds               : min=20.07 median=25.67 mean=28.37 max=44.93
+    peak |F| success (N)  : min=3.48 median=11.21 mean=10.20 max=17.00
+    peak |M| success (N·m): min=0.277 median=0.474 mean=0.479 max=0.927
+    peak |F| all     (N)  : min=2.19 median=5.85 mean=7.03 max=17.00
+    peak |M| all     (N·m): min=0.158 median=0.437 mean=0.490 max=1.680
+
+SiemensDitflow  (n_success=15, n_partial=29, n_failure=6, n_labeled=50, success=30.0%, partial=88.0%)
+    frames                : min=371.0 median=473.0 mean=510.7 max=774.0
+    seconds               : min=24.73 median=31.53 mean=34.05 max=51.60
+    peak |F| success (N)  : min=7.61 median=11.19 mean=11.86 max=17.71
+    peak |M| success (N·m): min=0.204 median=0.468 mean=0.440 max=0.629
+    peak |F| all     (N)  : min=2.19 median=7.71 mean=8.08 max=17.94
+    peak |M| all     (N·m): min=0.156 median=0.388 mean=0.460 max=1.184
+
+SiemensPi05  (n_success=10, n_partial=39, n_failure=2, n_labeled=51, success=19.6%, partial=96.1%)
+    frames                : min=406.0 median=527.0 mean=561.1 max=924.0
+    seconds               : min=27.07 median=35.13 mean=37.41 max=61.60
+    peak |F| success (N)  : min=4.68 median=7.92 mean=8.11 max=10.84
+    peak |M| success (N·m): min=0.179 median=0.273 mean=0.356 max=0.915
+    peak |F| all     (N)  : min=2.22 median=5.63 mean=6.51 max=20.81
+    peak |M| all     (N·m): min=0.151 median=0.384 mean=0.470 max=1.538
 
