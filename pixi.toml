@@ -6,8 +6,10 @@ channels = ["conda-forge"]
 platforms = ["linux-64"]
 
 [dependencies]
-python = "3.11.*"
+python = "3.12.*"
 pandas = "*"
 pyarrow = "*"
 pyyaml = "*"
 huggingface_hub = "*"
+lerobot = ">=0.5.1,<0.6"
+opencv = "*"
