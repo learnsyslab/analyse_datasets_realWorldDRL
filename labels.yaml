@@ -345,3 +345,333 @@ OliverHausdoerfer/siemens_pi05_deploy_1:
   48: p
   49: p
   50: p
+OliverHausdoerfer/lego_simple_jim_ditflow_deploy_1:
+  0: s
+  1: f
+  2: p
+  3: f
+  4: p
+  5: f
+  6: s
+  7: f
+  8: s
+  9: s
+  10: s
+  11: f
+  12: p
+  13: s
+  14: f
+  15: p
+  16: s
+  17: p
+  18: f
+  19: f
+  20: s
+  21: s
+  22: f
+  23: f
+  24: s
+  25: s
+  26: p
+  27: f
+  28: f
+  29: f
+  30: f
+  31: s
+  32: p
+  33: f
+  34: f
+  35: f
+  36: f
+  37: f
+  38: f
+  39: p
+  40: f
+  41: p
+  42: p
+  43: p
+  44: f
+  45: f
+  46: f
+  47: p
+  48: f
+  49: f
+  50: f
+  51: s
+  # 52: s
+  # 53: f
+  # 54: f
+  # 55: f
+  # 56: f
+  # 57: f
+  # 58: f
+  # 59: p
+  # 60: f
+  # 61: f
+
+
+OliverHausdoerfer/siemens_diffusion_generalization_deploy_1:
+  0: f
+  1: f
+  2: f
+  3: p
+  4: f
+  5: f
+  6: f
+  7: f
+  8: p
+  9: f
+  10: f
+  11: f
+  12: p
+  13: f
+  14: f
+  15: f
+
+OliverHausdoerfer/siemens_ditflow_generalization_deploy_1:
+  0: f
+  1: f
+  2: p
+  3: p
+  4: f
+  5: f
+  6: f
+  7: f
+  8: p
+  9: f
+  10: f
+  11: f
+  12: p
+  13: f
+  14: f
+
+OliverHausdoerfer/siemens_pi05_generalization_deploy_1:
+  0: f
+  1: p
+  2: f
+  3: f
+  4: p
+  5: p
+  6: p
+  7: p
+  8: p
+  9: f
+  10: f
+  11: f
+  12: p
+  13: f
+  14: f
+  15: f
+
+OliverHausdoerfer/stack_lego_simple_generalization_ditflow_deploy_1:
+  0: f
+  1: s
+  2: f
+  3: f
+  4: f
+  5: f
+  6: s
+  7: f
+  8: f
+  9: f
+  10: f
+  11: f
+  12: f
+  13: f
+  14: f
+  15: f
+  16: f
+  17: f
+  18: f
+  19: f
+  20: f
+  21: f
+  22: f
+  23: f
+  24: f
+  25: f
+  26: f
+
+
+OliverHausdoerfer/stack_lego_simple_pi05_generalization_deploy_2:
+  0: f
+  1: f
+  2: f
+  3: f
+  4: f
+  5: f
+  6: f
+  7: f
+  8: f
+  9: f
+
+OliverHausdoerfer/stack_lego_simple_generalization_diffusion_deploy_1:
+  0: f
+  1: f
+  2: p
+  3: f
+  4: s
+  5: f
+  6: p
+  7: s
+  8: f
+  9: f
+  10: f
+  11: f
+  12: f
+  13: f
+  14: f
+  15: f
+  16: f
+  17: f
+  18: f
+  19: f
+  20: f
+  21: f
+  22: f
+  23: p
+  24: f
+  25: p
+  26: f
+
+
+OliverHausdoerfer/diffusion_siemens_difficult_deploy:
+  0: s
+  1: p
+  2: s
+  3: s
+  4: p
+  5: p
+  6: s
+  7: s
+  8: p
+  9: s
+  10: s
+  11: p
+  12: p
+  13: p
+  14: p
+  15: p
+  16: s
+  17: p
+  18: p
+  19: p
+  20: p
+  21: p
+  22: s
+  23: p
+  24: p
+  25: p
+  26: p
+  27: p
+  28: p
+  29: p
+  30: p
+  31: p
+  32: p
+  33: s
+  34: s
+  35: s
+  36: p
+  37: s
+  38: f
+  39: s
+  40: f
+  41: f
+  42: p
+  43: f
+  44: s
+  45: p
+  46: s
+  47: p
+  48: p
+  49: p
+OliverHausdoerfer/ditflow_siemens_difficult_deploy:
+  0: p
+  1: s
+  2: p
+  3: p
+  4: f
+  5: p
+  6: f
+  7: p
+  8: s
+  9: p
+  10: p
+  11: p
+  12: p
+  13: p
+  14: s
+  15: s
+  16: p
+  17: p
+  18: p
+  19: p
+  20: f
+  21: p
+  22: s
+  23: p
+  24: p
+  25: p
+  26: p
+  27: s
+  28: p
+  29: s
+  30: p
+  31: p
+  32: p
+  33: s
+  34: f
+  35: f
+  36: p
+  37: p
+  38: p
+  39: f
+  40: f
+  41: f
+  42: p
+  43: p
+  44: p
+  45: p
+  46: f
+  47: p
+  48: p
+  49: s
+
+OliverHausdoerfer/diffusion_siemens_difficult_generalization_deploy:
+  0: f
+  1: f
+  2: f
+  3: p
+  4: f
+  5: f
+  6: p
+  7: s
+  8: f
+  9: p
+  10: p
+  11: p
+  12: f
+  13: f
+  14: f
+  15: p
+  16: f
+  17: f
+  18: p
+  19: p
+  20: p
+OliverHausdoerfer/ditflow_siemens_difficult_generalization_deploy:
+  0: f
+  1: f
+  2: f
+  3: f
+  4: f
+  5: p
+  6: f
+  7: p
+  8: p
+  9: p
+  10: p
+  11: p
+
+
