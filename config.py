@@ -79,6 +79,18 @@ class SiemensDifficultDitflow:
         "OliverHausdoerfer/ditflow_siemens_difficult_deploy",
     ])
 
+@dataclass
+class SiemensDifficultPi05:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/siemens_difficult_pi05_deploy",
+    ])
+
+@dataclass
+class SiemensDifficultPi05Generalization:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/siemens_difficult_generalization_pi05_deploy",
+    ])
+
 
 @dataclass
 class SiemensDiffusionDiffiultGeneralization:

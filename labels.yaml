@@ -673,5 +673,81 @@ OliverHausdoerfer/ditflow_siemens_difficult_generalization_deploy:
   9: p
   10: p
   11: p
+OliverHausdoerfer/siemens_difficult_pi05_deploy:
+  0: p
+  1: p
+  2: s
+  3: p
+  4: s
+  5: f
+  6: f
+  7: f
+  8: p
+  9: p
+  10: p
+  11: p
+  12: s
+  13: p
+  14: f
+  15: p
+  16: p
+  17: f
+  18: p
+  19: f
+  20: p
+  21: s
+  22: s
+  23: p
+  24: p
+  25: p
+  26: p
+  27: s
+  28: p
+  29: p
+  30: p
+  31: f
+  32: p
+  33: p
+  34: p
+  35: p
+  36: p
+  37: p
+  38: p
+  39: f
+  40: p
+  41: p
+  42: f
+  43: f
+  44: p
+  45: f
+  46: p
+  47: f
+  48: f
+  49: p
+  50: p
+  51: p
+
+OliverHausdoerfer/siemens_difficult_generalization_pi05_deploy:
+  0: f
+  1: f
+  2: f
+  3: f
+  4: f
+  5: p
+  6: p
+  7: p
+  8: f
+  9: f
+  10: p
+  11: p
+  12: p
+  13: s
+  14: f
+  15: f
+  16: f
+  17: p
+  18: p
+  19: p
+
 
 

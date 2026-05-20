@@ -392,7 +392,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dataset-name",
-        default="ditflow_siemens_difficult_generalization_deploy",
+        default="siemens_difficult_generalization_pi05_deploy",
         help="Dataset name",
     )
     parser.add_argument(

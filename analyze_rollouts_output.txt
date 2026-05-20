@@ -74,6 +74,22 @@ SiemensDifficultDitflow  (n_success=9, n_partial=32, n_failure=9, n_labeled=50, 
     peak |F| all     (N)  : min=2.17 median=9.12 mean=9.22 max=18.22
     peak |M| all     (N·m): min=0.180 median=0.547 mean=0.581 max=1.742
 
+SiemensDifficultPi05  (n_success=6, n_partial=33, n_failure=13, n_labeled=52, success=11.5%, partial=75.0%)
+    frames                : min=265.0 median=300.5 mean=302.0 max=342.0
+    seconds               : min=17.67 median=20.03 mean=20.13 max=22.80
+    peak |F| success (N)  : min=8.39 median=12.64 mean=12.24 max=14.02
+    peak |M| success (N·m): min=0.244 median=0.451 mean=0.510 max=0.782
+    peak |F| all     (N)  : min=1.98 median=7.59 mean=8.48 max=18.65
+    peak |M| all     (N·m): min=0.177 median=0.527 mean=0.624 max=1.423
+
+SiemensDifficultPi05Generalization  (n_success=1, n_partial=9, n_failure=10, n_labeled=20, success=5.0%, partial=50.0%)
+    frames                : min=323.0 median=323.0 mean=323.0 max=323.0
+    seconds               : min=21.53 median=21.53 mean=21.53 max=21.53
+    peak |F| success (N)  : min=15.75 median=15.75 mean=15.75 max=15.75
+    peak |M| success (N·m): min=0.772 median=0.772 mean=0.772 max=0.772
+    peak |F| all     (N)  : min=2.58 median=9.74 mean=9.59 max=17.28
+    peak |M| all     (N·m): min=0.190 median=0.691 mean=0.722 max=1.512
+
 SiemensDiffusion  (n_success=15, n_partial=34, n_failure=2, n_labeled=51, success=29.4%, partial=96.1%)
     frames                : min=301.0 median=385.0 mean=425.5 max=674.0
     seconds               : min=20.07 median=25.67 mean=28.37 max=44.93
