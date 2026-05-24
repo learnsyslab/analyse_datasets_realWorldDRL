@@ -1,6 +1,8 @@
 """Compute average episode length for successful rollouts per task.
 
 Successful = annotation in labels.yaml is exactly "s".
+Datasets with no labels.yaml entry are treated as all-success for the
+frames/seconds duration stats (other label-dependent stats stay n/a).
 Datasets are downloaded in full (incl. videos) into ./datasets/<repo_id>/.
 """
 
@@ -55,9 +57,13 @@ def load_dataset(
         local_dir=str(local_dir),
     )
     meta_files = sorted((local_dir / "meta" / "episodes").rglob("*.parquet"))
-    if not meta_files:
-        raise FileNotFoundError(f"No episode parquet files found under {local_dir}")
-    meta_df = pd.concat([pd.read_parquet(p) for p in meta_files], ignore_index=True)
+    if meta_files:  # LeRobot v3 layout: meta/episodes/*.parquet
+        meta_df = pd.concat([pd.read_parquet(p) for p in meta_files], ignore_index=True)
+    else:  # LeRobot v2.x layout: meta/episodes.jsonl
+        episodes_jsonl = local_dir / "meta" / "episodes.jsonl"
+        if not episodes_jsonl.exists():
+            raise FileNotFoundError(f"No episode metadata found under {local_dir}")
+        meta_df = pd.read_json(episodes_jsonl, lines=True)
     lengths = meta_df.set_index("episode_index")["length"]
 
     with open(local_dir / "meta" / "info.json") as f:
@@ -142,6 +148,7 @@ def main() -> None:
         all_peak_force: list[float] = []
         all_peak_torque: list[float] = []
         n_labeled = 0
+        n_success = 0
         n_partial = 0
         n_failure = 0
 
@@ -152,18 +159,20 @@ def main() -> None:
             partial_eps = {ep for ep, c in ep_class.items() if c == "partial"}
             failure_eps = {ep for ep, c in ep_class.items() if c == "failure"}
             n_labeled += len(ep_class)
+            n_success += len(success_eps)
             n_partial += len(partial_eps)
             n_failure += len(failure_eps)
             lengths_by_idx, fps, peak_force, peak_torque = load_dataset(repo_id)
 
-            succ_frames.extend(int(lengths_by_idx.loc[ep]) for ep in success_eps)
-            succ_seconds.extend(int(lengths_by_idx.loc[ep]) / fps for ep in success_eps)
+            # With no annotations, assume every episode succeeded for the duration stats.
+            duration_eps = success_eps if ds_labels else set(lengths_by_idx.index)
+            succ_frames.extend(int(lengths_by_idx.loc[ep]) for ep in duration_eps)
+            succ_seconds.extend(int(lengths_by_idx.loc[ep]) / fps for ep in duration_eps)
             succ_peak_force.extend(peak_force[ep] for ep in success_eps if ep in peak_force)
             succ_peak_torque.extend(peak_torque[ep] for ep in success_eps if ep in peak_torque)
             all_peak_force.extend(peak_force.values())
             all_peak_torque.extend(peak_torque.values())
 
-        n_success = len(succ_frames)
         results.append(
             {
                 "name": task_name,

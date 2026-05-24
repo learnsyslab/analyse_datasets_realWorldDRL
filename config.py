@@ -123,6 +123,18 @@ class SiemensPi05Generalization:
         "OliverHausdoerfer/siemens_pi05_generalization_deploy_1",
     ])
 
+@dataclass
+class OursLegoSimple:
+    datasets: list = field(default_factory=lambda: [
+        "gabormarko/franka-insert-lego-2x4-eval-normal-50",
+    ])
+
+@dataclass
+class OursSiemens:
+    datasets: list = field(default_factory=lambda: [
+        "gabormarko/franka-insert-siemens-lid-eval-normal-50",
+    ])
+
 # @dataclass
 # class LegoSimpleGeneralizationDiffusion:
 #     datasets: list = field(default_factory=lambda: [
