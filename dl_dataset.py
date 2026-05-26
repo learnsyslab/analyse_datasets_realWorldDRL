@@ -12,7 +12,7 @@ def main():
     )
     parser.add_argument(
         "--dataset-name",
-        default="siemens_difficult_generalization_pi05_deploy",
+        default="ditflow_shelf_jim_deploy",
         help="Dataset name",
     )
     args = parser.parse_args()

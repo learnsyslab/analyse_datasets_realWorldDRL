@@ -135,6 +135,70 @@ class OursSiemens:
         "gabormarko/franka-insert-siemens-lid-eval-normal-50",
     ])
 
+@dataclass
+class OursSiemensGeneralization1:
+    datasets: list = field(default_factory=lambda: [
+        "gabormarko/franka-insert-siemens-lid-eval-ood-1-20",
+    ])
+
+# TODO should uncomment - just commented out because its slow for loading
+# @dataclass
+# class OursSiemensGeneralization2:
+#     datasets: list = field(default_factory=lambda: [
+#         "gabormarko/franka-insert-siemens-lid-eval-ood-2-20",
+#     ])
+
+
+@dataclass
+class ShelfDiffusion:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/diffusion_shelf_deploy",
+    ])
+
+@dataclass
+class ShelfDitflow:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/ditflow_shelf_deploy",
+    ])
+
+@dataclass
+class ShelfDtiflowJim:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/ditflow_shelf_jim_deploy",
+    ])
+
+@dataclass
+class ShelfPi05:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/pi05_shelf_deploy",
+    ])
+
+@dataclass
+class ShelfPi05Generalization:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/pi05_shelf_deploy_ood",
+    ])
+
+
+@dataclass
+class ShelfDiffusionGeneralization:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/diffusion_shelf_deploy_ood",
+    ])
+
+
+
+
+
+
+
+
+
+#######################
+
+
+
+
 # @dataclass
 # class LegoSimpleGeneralizationDiffusion:
 #     datasets: list = field(default_factory=lambda: [
@@ -155,6 +219,4 @@ class OursSiemens:
 #         "OliverHausdoerfer/stack_lego_simple_pi05_generalization_deploy_2",
 #         "OliverHausdoerfer/stack_lego_simple_pi05_generalization_deploy_1",
 #     ])
-
-
 

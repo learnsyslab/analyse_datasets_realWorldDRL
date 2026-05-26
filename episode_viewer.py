@@ -100,7 +100,7 @@ class EpisodeViewer:
             self.episode_ranges[ep_idx] = {"start": start, "end": end}
 
     def get_episode_frames(
-        self, episode_idx: int, last_n_seconds: float = 3.0, fps: float = 30.0
+        self, episode_idx: int, last_n_seconds: float = 0.5, fps: float = 30.0
     ) -> tuple:
         """Get the last n seconds of frames for an episode."""
         if episode_idx not in self.episode_ranges:
@@ -392,7 +392,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dataset-name",
-        default="siemens_difficult_generalization_pi05_deploy",
+        default="ditflow_shelf_deploy",
         help="Dataset name",
     )
     parser.add_argument(
