@@ -186,6 +186,12 @@ class ShelfDiffusionGeneralization:
         "OliverHausdoerfer/diffusion_shelf_deploy_ood",
     ])
 
+@dataclass
+class ShelfDitflowGeneralization:
+    datasets: list = field(default_factory=lambda: [
+        "OliverHausdoerfer/ditflow_shelf_deploy_ood",
+    ])
+
 
 
 
