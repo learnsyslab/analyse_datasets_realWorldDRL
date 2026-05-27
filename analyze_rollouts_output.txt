@@ -106,6 +106,14 @@ ShelfDitflow  (n_success=21, n_partial=46, n_failure=4, n_labeled=71, success=29
     peak |F| all     (N)  : min=0.64 median=5.62 mean=5.79 max=10.36
     peak |M| all     (N·m): min=0.038 median=0.332 mean=0.392 max=0.985
 
+ShelfDitflowGeneralization  (n_success=5, n_partial=7, n_failure=18, n_labeled=30, success=16.7%, partial=40.0%)
+    frames                : min=205.0 median=207.0 mean=214.8 max=236.0
+    seconds               : min=13.67 median=13.80 mean=14.32 max=15.73
+    peak |F| success (N)  : min=4.66 median=5.06 mean=5.07 max=5.61
+    peak |M| success (N·m): min=0.274 median=0.382 mean=0.380 max=0.489
+    peak |F| all     (N)  : min=1.34 median=4.68 mean=4.40 max=11.06
+    peak |M| all     (N·m): min=0.110 median=0.267 mean=0.308 max=1.120
+
 ShelfDtiflowJim  (n_success=23, n_partial=33, n_failure=15, n_labeled=71, success=32.4%, partial=78.9%)
     frames                : min=226.0 median=304.0 mean=307.1 max=451.0
     seconds               : min=15.07 median=20.27 mean=20.47 max=30.07

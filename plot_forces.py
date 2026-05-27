@@ -46,13 +46,13 @@ METRICS = {
     "force": {
         "slice": slice(0, 3),
         "json_key": "force_N",
-        "ylabel": "Episodic maximum\nForces [N]",
+        "ylabel": "Episodic max.\nForces [N]",
         "output": FORCE_OUTPUT_PATH,
     },
     "torque": {
         "slice": slice(3, 6),
         "json_key": "torque_Nm",
-        "ylabel": "Episodic maximum\nTorques [Nm]",
+        "ylabel": "Episodic max.\nTorques [Nm]",
         "output": TORQUE_OUTPUT_PATH,
     },
 }
@@ -78,12 +78,20 @@ POLICIES_SIEMENS = {
 }
 
 OURS_TASK_LEGO = config.OursLegoSimple()
+OURS_TASK_LEGO_JSON = config.OursLegoFt20()
 POLICIES_LEGO = {
     "Diffusion": config.LegoSimpleDiffusion(),
     "Ditflow": config.LegoSimpleDitflow(),
     "Ditflow Novice": config.LegoSimpleDitflowNovice(),
     "Pi05": config.LegoSimplePi05(),
     "Ours (dataset)": OURS_TASK_LEGO,
+}
+
+POLICIES_SHELF = {
+    "Diffusion": config.ShelfDiffusion(),
+    "Ditflow": config.ShelfDitflow(),
+    "Ditflow Novice": config.ShelfDtiflowJim(),
+    "Pi05": config.ShelfPi05(),
 }
 
 OURS_JSON_KEY = "__ours_json__"
@@ -106,7 +114,12 @@ TASKS = {
     "Lego": {
         "gradient": ("#c36c43", "#d78d57"),  # bottom -> top
         "policies": POLICIES_LEGO,
-        "ours_json_task": OURS_TASK_LEGO,
+        "ours_json_task": OURS_TASK_LEGO_JSON,
+    },
+    "Shelf stocking": {
+        "gradient": ("#b73779", "#de4968"),  # magma mid-band (pink -> red)
+        "policies": POLICIES_SHELF,
+        "ours_json_task": None,
     },
 }
 
@@ -256,16 +269,18 @@ def plot_metric(metric_name: str) -> None:
     # First pass: collect all (column, task, vals) so we can compute
     # axis limits ourselves (imshow gradient fills clobber autoscale).
     cells: list[tuple[int, int, str, list[float]]] = []
+    missing: list[tuple[int, int]] = []
     for c, col in enumerate(CANONICAL_COLUMNS):
         col_label = OURS_JSON_LABEL if col == OURS_JSON_KEY else col
         for i, tname in enumerate(task_keys):
             print(f"  [{col_label}] {tname}...", flush=True)
             vals = collect_peaks(col, TASKS[tname], cfg)
             if vals is None or len(vals) == 0:
+                missing.append((c, i))
                 continue
             cells.append((c, i, tname, vals))
 
-    fig, ax = plt.subplots(figsize=(40, 10))
+    fig, ax = plt.subplots(figsize=(40, 9))
 
     for c, i, tname, vals in cells:
         pos = c + (i - (n_tasks - 1) / 2) * box_width
@@ -287,6 +302,19 @@ def plot_metric(metric_name: str) -> None:
         ymin, ymax = min(all_vals), max(all_vals)
         margin = (ymax - ymin) * 0.05
         ax.set_ylim(max(0.0, ymin - margin), ymax + margin)
+
+    for c, i in missing:
+        pos = c + (i - (n_tasks - 1) / 2) * box_width
+        ax.text(
+            pos,
+            0.01,
+            "N/A",
+            transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="bottom",
+            color="grey",
+            fontsize=plt.rcParams["font.size"] * 0.7,
+        )
 
     def _format_label(label: str) -> str:
         if label.startswith("Ours\n"):
