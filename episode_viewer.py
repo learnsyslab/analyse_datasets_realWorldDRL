@@ -392,7 +392,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dataset-name",
-        default="ditflow_shelf_deploy",
+        default="ditflow_shelf_deploy_ood",
         help="Dataset name",
     )
     parser.add_argument(

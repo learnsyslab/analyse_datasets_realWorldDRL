@@ -132,7 +132,7 @@ class OursLegoSimple:
 @dataclass
 class OursLegoFt20:
     datasets: list = field(default_factory=lambda: [
-        "gabormarko/franka-insert-lego-2x4-eval-ft-20",
+        "gabormarko/franka-insert-lego-2x4-eval-ft-20-v2",
     ])
 
 @dataclass

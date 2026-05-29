@@ -36,6 +36,7 @@ logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 REPO_ROOT = Path(__file__).parent
 DATASETS_DIR = REPO_ROOT / "datasets"
+SHELF_OURS_DIR = DATASETS_DIR / "stats_ours_shelf_task"
 FORCE_OUTPUT_PATH = REPO_ROOT / "forces_boxplot.pdf"
 TORQUE_OUTPUT_PATH = REPO_ROOT / "torques_boxplot.pdf"
 
@@ -120,6 +121,8 @@ TASKS = {
         "gradient": ("#b73779", "#de4968"),  # magma mid-band (pink -> red)
         "policies": POLICIES_SHELF,
         "ours_json_task": None,
+        "ours_pushdown_json": SHELF_OURS_DIR / "ft_statistics.json",
+        "ours_learned_json": SHELF_OURS_DIR / "ft_statistics_policy.json",
     },
 }
 
@@ -243,6 +246,9 @@ def _fill_box_with_gradient(ax, box_patch, gradient: tuple[str, str]) -> None:
 def collect_peaks(column_key: str, task_entry: dict, cfg: dict) -> list[float] | None:
     """Return per-episode peaks for one (column, task) cell, or None if absent."""
     if column_key == OURS_JSON_KEY:
+        explicit = task_entry.get("ours_pushdown_json")
+        if explicit is not None:
+            return episode_peaks_from_json(explicit, cfg["json_key"]) if Path(explicit).is_file() else None
         t = task_entry["ours_json_task"]
         if t is None:
             return None
@@ -250,6 +256,10 @@ def collect_peaks(column_key: str, task_entry: dict, cfg: dict) -> list[float] |
         if not json_path.is_file():
             return None
         return episode_peaks_from_json(json_path, cfg["json_key"])
+    if column_key == "Ours (dataset)":
+        explicit = task_entry.get("ours_learned_json")
+        if explicit is not None:
+            return episode_peaks_from_json(explicit, cfg["json_key"]) if Path(explicit).is_file() else None
     task = task_entry["policies"].get(column_key)
     if task is None:
         return None
@@ -280,7 +290,7 @@ def plot_metric(metric_name: str) -> None:
                 continue
             cells.append((c, i, tname, vals))
 
-    fig, ax = plt.subplots(figsize=(40, 9))
+    fig, ax = plt.subplots(figsize=(40, 8))
 
     for c, i, tname, vals in cells:
         pos = c + (i - (n_tasks - 1) / 2) * box_width
@@ -335,6 +345,7 @@ def plot_metric(metric_name: str) -> None:
         handles=handles,
         handler_map={_GradientHandle: _GradientHandler()},
         loc="best",
+        ncol=len(handles),
     )
     fig.tight_layout()
     fig.savefig(cfg["output"])

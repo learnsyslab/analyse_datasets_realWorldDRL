@@ -7,12 +7,12 @@ def main():
     parser = argparse.ArgumentParser(description="Download a Hugging Face dataset")
     parser.add_argument(
         "--repo-owner",
-        default="OliverHausdoerfer",
+        default="gabormarko",
         help="Hugging Face dataset repository owner",
     )
     parser.add_argument(
         "--dataset-name",
-        default="ditflow_shelf_jim_deploy",
+        default="franka-insert-lego-2x4-eval-ft-20",
         help="Dataset name",
     )
     args = parser.parse_args()
