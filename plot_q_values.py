@@ -64,6 +64,7 @@ def main() -> None:
         for ax in axes:
             ax.axhline(R_SUCCESS, color="grey", linewidth=0.5, linestyle="--", zorder=0)
             ax.set_xlim(0, X_MAX)
+            ax.set_xticks(np.arange(0, EPISODE_LEN + 1, 30))
             ax.axvline(EPISODE_LEN, color="grey", linewidth=0.5, linestyle="--", zorder=0)
             ax.set_ylim(-0.5, 10.5)
             ax.set_yticks([0, 2, 4, 6, 8, 10])
