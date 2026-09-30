@@ -50,9 +50,14 @@ STACKED_OUTPUT_PATH = REPO_ROOT / "forces_torques_stacked.pdf"
 TEXT_WIDTH_IN = 516 / 72
 COLUMN_WIDTH_IN = 252 / 72
 PAPER_RC = {
+    # Embed text as TrueType (Type 42) instead of Type 3: IEEE PDF checks reject Type 3 fonts.
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
     "font.size": 8,
     "font.family": "serif",
-    "font.serif": ["Nimbus Roman", "Times New Roman", "Times", "Liberation Serif"],
+    # Liberation Serif: Times-metric TrueType, so Type 42 embedding is clean (the
+    # OpenType-CFF Nimbus Roman gets wrapped into a mismatched CID TrueType font).
+    "font.serif": ["Liberation Serif", "Times New Roman", "Nimbus Roman", "Times"],
     "mathtext.fontset": "stix",
     "axes.linewidth": 0.5,
     "lines.linewidth": 0.6,
