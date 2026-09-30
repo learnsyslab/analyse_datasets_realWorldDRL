@@ -24,6 +24,7 @@ DATA_PATH = REPO_ROOT / "data" / "q_values_run_s_1b_0.82" / "state_values_raw.np
 OUTPUT_PATH = REPO_ROOT / "q_values_success_classifier.pdf"
 
 EPISODE_LEN = 150  # truncation length; successful episodes are aligned to end here
+X_MAX = 160        # a bit past the end so it is visible that all rollouts stop at 150
 R_SUCCESS = 10.0   # sparse terminal reward = max Q-value
 
 
@@ -62,12 +63,13 @@ def main() -> None:
         ax_succ.set_xlabel(f"Aligned timestep (all episodes end at $t={EPISODE_LEN}$)")
         for ax in axes:
             ax.axhline(R_SUCCESS, color="grey", linewidth=0.5, linestyle="--", zorder=0)
-            ax.set_xlim(0, EPISODE_LEN)
+            ax.set_xlim(0, X_MAX)
+            ax.axvline(EPISODE_LEN, color="grey", linewidth=0.5, linestyle="--", zorder=0)
             ax.set_ylim(-0.5, 10.5)
             ax.set_yticks([0, 2, 4, 6, 8, 10])
             ax.grid(True, alpha=0.3, linewidth=0.4)
             ax.tick_params(length=2, pad=1.5)
-        ax_trunc.text(EPISODE_LEN - 2, R_SUCCESS, r"$R_\mathrm{success}$", ha="right",
+        ax_trunc.text(EPISODE_LEN - 3, R_SUCCESS, r"$R_\mathrm{success}$", ha="right",
                       va="top", color="grey", fontsize=7)
 
         fig.tight_layout(pad=0.2, w_pad=0.6)
