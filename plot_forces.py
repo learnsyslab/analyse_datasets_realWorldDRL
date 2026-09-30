@@ -45,21 +45,28 @@ COMBINED_OUTPUT_PATH = REPO_ROOT / "forces_torques_boxplot.pdf"
 STACKED_OUTPUT_PATH = REPO_ROOT / "forces_torques_stacked.pdf"
 
 # The paper-sized figures below are drawn at true scale (1 in = 1 in in the PDF)
-# in the paper's body font (IEEEtran: 10 pt Times), overriding the 5x-scale
-# rcParams above via PAPER_RC.
+# in the paper's font (IEEEtran: Times; 8 pt = caption size, the usual size for
+# figure text), overriding the 5x-scale rcParams above via PAPER_RC.
 TEXT_WIDTH_IN = 516 / 72
 COLUMN_WIDTH_IN = 252 / 72
 PAPER_RC = {
-    "font.size": 10,
+    "font.size": 8,
     "font.family": "serif",
     "font.serif": ["Nimbus Roman", "Times New Roman", "Times", "Liberation Serif"],
     "mathtext.fontset": "stix",
-    "axes.linewidth": 0.6,
-    "lines.linewidth": 0.8,
-    "xtick.major.width": 0.6,
-    "ytick.major.width": 0.6,
-    "boxplot.flierprops.markersize": 2.5,
-    "boxplot.meanprops.markersize": 3,
+    "axes.linewidth": 0.5,
+    "lines.linewidth": 0.6,
+    "xtick.major.width": 0.5,
+    "ytick.major.width": 0.5,
+    # Thin box lines and small markers so the boxes stay readable at this size.
+    "boxplot.boxprops.linewidth": 0.5,
+    "boxplot.whiskerprops.linewidth": 0.5,
+    "boxplot.capprops.linewidth": 0.5,
+    "boxplot.medianprops.linewidth": 0.6,
+    "boxplot.flierprops.markersize": 1.8,
+    "boxplot.flierprops.markeredgewidth": 0.4,
+    "boxplot.meanprops.markersize": 1.5,
+    "boxplot.meanprops.markeredgewidth": 0.3,
 }
 
 FT_COL = "observation.state.sensors_bota_ft_sensor"
@@ -453,7 +460,7 @@ def _paper_legend(ax, headroom: float = 0.3):
 def plot_single_column() -> None:
     """Forces only, sized for one paper column at the paper's font size."""
     with plt.rc_context(PAPER_RC):
-        fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 1.35))
+        fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 1.25))
         _draw_paper(ax, "force")
         _paper_legend(ax)
         fig.tight_layout(pad=0.2)
@@ -465,7 +472,7 @@ def plot_single_column() -> None:
 def plot_stacked() -> None:
     """Forces (top) over torques (bottom) with a shared policy axis, one column wide."""
     with plt.rc_context(PAPER_RC):
-        fig, axes = plt.subplots(2, 1, figsize=(COLUMN_WIDTH_IN, 2.0), sharex=True)
+        fig, axes = plt.subplots(2, 1, figsize=(COLUMN_WIDTH_IN, 1.85), sharex=True)
         for ax, metric_name in zip(axes, ("force", "torque")):
             _draw_paper(ax, metric_name)
         axes[0].tick_params(axis="x", labelbottom=False)
@@ -480,7 +487,7 @@ def plot_stacked() -> None:
 def plot_combined() -> None:
     """Forces (left) and torques (right), sized for the full text width."""
     with plt.rc_context(PAPER_RC):
-        fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 1.3))
+        fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 1.2))
         for ax, metric_name in zip(axes, ("force", "torque")):
             _draw_paper(ax, metric_name)
         _paper_legend(axes[0])
