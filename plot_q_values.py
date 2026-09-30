@@ -83,12 +83,13 @@ def plot_full_width(truncated, success) -> None:
 def plot_single_column_horizontal(truncated, success) -> None:
     """Two panels side by side within one column."""
     with plt.rc_context(PAPER_RC):
-        fig, axes = plt.subplots(1, 2, figsize=(COLUMN_WIDTH_IN, 1.5), sharey=True)
+        fig, axes = plt.subplots(1, 2, figsize=(COLUMN_WIDTH_IN, 1.4), sharey=True)
         ax_trunc, ax_succ = axes
         _plot_lines(ax_trunc, truncated, end_aligned=False)
         _plot_lines(ax_succ, success, end_aligned=True)
-        ax_trunc.set_title(f"Truncated (n={len(truncated)})")
-        ax_succ.set_title(f"Successful (n={len(success)})")
+        # Panel names inside the axes (top left) instead of titles to save height.
+        for ax, name in ((ax_trunc, "Truncated"), (ax_succ, "Success")):
+            ax.text(0.03, 0.95, name, transform=ax.transAxes, ha="left", va="top")
         ax_trunc.set_ylabel("Mean Q-value")
         ax_trunc.set_xlabel("Timestep")
         ax_succ.set_xlabel("Aligned timestep")
