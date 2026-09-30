@@ -39,6 +39,13 @@ DATASETS_DIR = REPO_ROOT / "datasets"
 SHELF_OURS_DIR = DATASETS_DIR / "stats_ours_shelf_task"
 FORCE_OUTPUT_PATH = REPO_ROOT / "forces_boxplot.pdf"
 TORQUE_OUTPUT_PATH = REPO_ROOT / "torques_boxplot.pdf"
+SINGLE_COLUMN_OUTPUT_PATH = REPO_ROOT / "forces_boxplot_single_column.pdf"
+COMBINED_OUTPUT_PATH = REPO_ROOT / "forces_torques_boxplot.pdf"
+
+# Figures are drawn at 5x scale (see font.size above): a 40 in wide figure maps
+# to the paper's \textwidth (516 pt), so a single column (252 pt) is ~19.5 in.
+TEXT_WIDTH_IN = 40
+COLUMN_WIDTH_IN = TEXT_WIDTH_IN * 252 / 516
 
 FT_COL = "observation.state.sensors_bota_ft_sensor"
 
@@ -66,6 +73,12 @@ POLICY_LABELS = {
     "Ditflow": "DiTFlow",
 }
 OURS_JSON_LABEL = "Ours\n(push down)"
+# Two-line labels for horizontal layouts, where the policy names sit on the y-axis.
+POLICY_LABELS_COMPACT = {
+    **POLICY_LABELS,
+    "Pi05": "Finetuned\nPi05",
+    "Ditflow Novice": "DiTFlow\n(novice)",
+}
 
 # Baseline policy label -> task instance. Order here defines the x-axis order;
 # "Ours" is appended last from its eval results JSON (see OURS_JSON below).
@@ -223,11 +236,15 @@ class _GradientHandler(HandlerBase):
         return artists
 
 
-def _fill_box_with_gradient(ax, box_patch, gradient: tuple[str, str]) -> None:
-    """Replace a solid box facecolor with a vertical gradient (bottom -> top)."""
+def _fill_box_with_gradient(
+    ax, box_patch, gradient: tuple[str, str], horizontal: bool = False
+) -> None:
+    """Replace a solid box facecolor with a gradient along the value axis
+    (bottom -> top, or left -> right for horizontal boxes)."""
     color_bottom, color_top = gradient
     cmap = LinearSegmentedColormap.from_list("box_grad", [color_bottom, color_top])
-    grad = np.linspace(0, 1, 256).reshape(-1, 1)
+    grad = np.linspace(0, 1, 256)
+    grad = grad.reshape(1, -1) if horizontal else grad.reshape(-1, 1)
     verts = box_patch.get_path().vertices
     x0, x1 = float(verts[:, 0].min()), float(verts[:, 0].max())
     y0, y1 = float(verts[:, 1].min()), float(verts[:, 1].max())
@@ -269,94 +286,159 @@ def collect_peaks(column_key: str, task_entry: dict, cfg: dict) -> list[float] |
     return peaks
 
 
-def plot_metric(metric_name: str) -> None:
-    cfg = METRICS[metric_name]
-    task_keys = list(TASKS)
-    n_tasks = len(task_keys)
-    group_width = 0.8
-    box_width = group_width / n_tasks
+def collect_cells(metric_name: str):
+    """Collect per-episode peaks for every (column, task) cell of one metric.
 
-    # First pass: collect all (column, task, vals) so we can compute
-    # axis limits ourselves (imshow gradient fills clobber autoscale).
+    Returns ``(cells, missing)`` with ``cells`` = [(column_idx, task_idx, task, vals)]
+    and ``missing`` = [(column_idx, task_idx)] for cells without data.
+    """
+    cfg = METRICS[metric_name]
     cells: list[tuple[int, int, str, list[float]]] = []
     missing: list[tuple[int, int]] = []
     for c, col in enumerate(CANONICAL_COLUMNS):
         col_label = OURS_JSON_LABEL if col == OURS_JSON_KEY else col
-        for i, tname in enumerate(task_keys):
+        for i, tname in enumerate(TASKS):
             print(f"  [{col_label}] {tname}...", flush=True)
             vals = collect_peaks(col, TASKS[tname], cfg)
             if vals is None or len(vals) == 0:
                 missing.append((c, i))
                 continue
             cells.append((c, i, tname, vals))
+    return cells, missing
 
-    fig, ax = plt.subplots(figsize=(40, 8))
+
+def _format_label(label: str) -> str:
+    if label.startswith("Ours\n"):
+        return r"$\mathbf{Ours}$" + label[len("Ours"):]
+    return label
+
+
+def draw_boxes(ax, cells, missing, horizontal: bool = False, labels=POLICY_LABELS) -> None:
+    """Draw grouped gradient boxplots (one group per policy, one box per task).
+
+    With ``horizontal=True`` policies run top -> bottom on the y-axis and the
+    metric is on the x-axis.
+    """
+    n_tasks = len(TASKS)
+    group_width = 0.8
+    box_width = group_width / n_tasks
+
+    def _pos(c: int, i: int) -> float:
+        return c + (i - (n_tasks - 1) / 2) * box_width
 
     for c, i, tname, vals in cells:
-        pos = c + (i - (n_tasks - 1) / 2) * box_width
         bp = ax.boxplot(
             [vals],
-            positions=[pos],
+            positions=[_pos(c, i)],
             widths=box_width * 0.72,
             patch_artist=True,
             showmeans=True,
             medianprops=dict(color="black"),
+            orientation="horizontal" if horizontal else "vertical",
         )
-        _fill_box_with_gradient(ax, bp["boxes"][0], TASKS[tname]["gradient"])
+        _fill_box_with_gradient(ax, bp["boxes"][0], TASKS[tname]["gradient"], horizontal)
 
+    separator = ax.axhline if horizontal else ax.axvline
     for x in range(1, len(CANONICAL_COLUMNS)):
-        ax.axvline(x - 0.5, color="grey", linewidth=0.8, alpha=0.4, zorder=0)
+        separator(x - 0.5, color="grey", linewidth=0.8, alpha=0.4, zorder=0)
 
+    # Set value limits ourselves (imshow gradient fills clobber autoscale).
     all_vals = [v for _, _, _, vals in cells for v in vals]
     if all_vals:
-        ymin, ymax = min(all_vals), max(all_vals)
-        margin = (ymax - ymin) * 0.05
-        ax.set_ylim(max(0.0, ymin - margin), ymax + margin)
+        vmin, vmax = min(all_vals), max(all_vals)
+        margin = (vmax - vmin) * 0.05
+        set_vlim = ax.set_xlim if horizontal else ax.set_ylim
+        set_vlim(max(0.0, vmin - margin), vmax + margin)
 
     for c, i in missing:
-        pos = c + (i - (n_tasks - 1) / 2) * box_width
-        ax.text(
-            pos,
-            0.01,
-            "N/A",
-            transform=ax.get_xaxis_transform(),
-            ha="center",
-            va="bottom",
-            color="grey",
-            fontsize=plt.rcParams["font.size"] * 0.7,
-        )
-
-    def _format_label(label: str) -> str:
-        if label.startswith("Ours\n"):
-            return r"$\mathbf{Ours}$" + label[len("Ours"):]
-        return label
+        if horizontal:
+            ax.text(0.01, _pos(c, i), "N/A", transform=ax.get_yaxis_transform(),
+                    ha="left", va="center", color="grey",
+                    fontsize=plt.rcParams["font.size"] * 0.7)
+        else:
+            ax.text(_pos(c, i), 0.01, "N/A", transform=ax.get_xaxis_transform(),
+                    ha="center", va="bottom", color="grey",
+                    fontsize=plt.rcParams["font.size"] * 0.7)
 
     tick_labels = [
-        _format_label(OURS_JSON_LABEL if col == OURS_JSON_KEY else POLICY_LABELS.get(col, col))
+        _format_label(OURS_JSON_LABEL if col == OURS_JSON_KEY else labels.get(col, col))
         for col in CANONICAL_COLUMNS
     ]
-    ax.set_xticks(range(len(CANONICAL_COLUMNS)))
-    ax.set_xticklabels(tick_labels)
-    ax.set_xlim(-0.5, len(CANONICAL_COLUMNS) - 0.5)
-    ax.set_ylabel(cfg["ylabel"])
-    ax.grid(axis="y", alpha=0.3)
-    handles = [_GradientHandle(TASKS[t]["gradient"], t) for t in task_keys]
-    ax.legend(
+    ticks = range(len(CANONICAL_COLUMNS))
+    if horizontal:
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(tick_labels)
+        ax.set_ylim(len(CANONICAL_COLUMNS) - 0.5, -0.5)  # first policy on top
+        ax.grid(axis="x", alpha=0.3)
+    else:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(tick_labels)
+        ax.set_xlim(-0.5, len(CANONICAL_COLUMNS) - 0.5)
+        ax.grid(axis="y", alpha=0.3)
+
+
+def _task_legend(target, **kwargs):
+    handles = [_GradientHandle(TASKS[t]["gradient"], t) for t in TASKS]
+    return target.legend(
         handles=handles,
         handler_map={_GradientHandle: _GradientHandler()},
-        loc="best",
         ncol=len(handles),
+        **kwargs,
     )
+
+
+def plot_metric(metric_name: str) -> None:
+    cfg = METRICS[metric_name]
+    cells, missing = collect_cells(metric_name)
+
+    fig, ax = plt.subplots(figsize=(TEXT_WIDTH_IN, 8))
+    draw_boxes(ax, cells, missing)
+    ax.set_ylabel(cfg["ylabel"])
+    _task_legend(ax, loc="best")
     fig.tight_layout()
     fig.savefig(cfg["output"])
     plt.close(fig)
     print(f"Wrote plot to {cfg['output']}")
 
 
+def plot_single_column() -> None:
+    """Forces only, horizontal boxes, sized for one paper column."""
+    cells, missing = collect_cells("force")
+
+    fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 15))
+    draw_boxes(ax, cells, missing, horizontal=True, labels=POLICY_LABELS_COMPACT)
+    ax.set_xlabel(METRICS["force"]["ylabel"].replace("\n", " "))
+    _task_legend(fig, loc="upper center", bbox_to_anchor=(0.5, 1.0),
+                 frameon=False, handlelength=1.2, columnspacing=1.0)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(SINGLE_COLUMN_OUTPUT_PATH)
+    plt.close(fig)
+    print(f"Wrote plot to {SINGLE_COLUMN_OUTPUT_PATH}")
+
+
+def plot_combined() -> None:
+    """Forces (left) and torques (right) side by side, sized for the full text width."""
+    fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 13), sharey=True)
+    for ax, metric_name in zip(axes, ("force", "torque")):
+        cells, missing = collect_cells(metric_name)
+        draw_boxes(ax, cells, missing, horizontal=True, labels=POLICY_LABELS_COMPACT)
+        ax.set_xlabel(METRICS[metric_name]["ylabel"].replace("\n", " "))
+    axes[1].tick_params(axis="y", left=False)
+    _task_legend(fig, loc="upper center", bbox_to_anchor=(0.5, 1.0), frameon=False)
+    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    fig.savefig(COMBINED_OUTPUT_PATH)
+    plt.close(fig)
+    print(f"Wrote plot to {COMBINED_OUTPUT_PATH}")
+
+
 def main() -> None:
     for metric_name in METRICS:
         print(f"=== {metric_name} ===")
         plot_metric(metric_name)
+    print("=== single column ===")
+    plot_single_column()
+    print("=== combined ===")
+    plot_combined()
 
 
 if __name__ == "__main__":
