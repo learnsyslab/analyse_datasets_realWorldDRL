@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import MaxNLocator
 
 plt.rcParams.update({"font.size": plt.rcParams["font.size"] * 5})
 import numpy as np
@@ -41,6 +42,7 @@ FORCE_OUTPUT_PATH = REPO_ROOT / "forces_boxplot.pdf"
 TORQUE_OUTPUT_PATH = REPO_ROOT / "torques_boxplot.pdf"
 SINGLE_COLUMN_OUTPUT_PATH = REPO_ROOT / "forces_boxplot_single_column.pdf"
 COMBINED_OUTPUT_PATH = REPO_ROOT / "forces_torques_boxplot.pdf"
+STACKED_OUTPUT_PATH = REPO_ROOT / "forces_torques_stacked.pdf"
 
 # The paper-sized figures below are drawn at true scale (1 in = 1 in in the PDF)
 # in the paper's body font (IEEEtran: 10 pt Times), overriding the 5x-scale
@@ -426,7 +428,7 @@ def plot_metric(metric_name: str) -> None:
     print(f"Wrote plot to {cfg['output']}")
 
 
-PAPER_YLABELS = {"force": "Max. force [N]", "torque": "Max. torque [Nm]"}
+PAPER_YLABELS = {"force": "Force [N]", "torque": "Torque [Nm]"}  # "max." is in the caption
 
 
 def _draw_paper(ax, metric_name: str) -> None:
@@ -434,21 +436,24 @@ def _draw_paper(ax, metric_name: str) -> None:
     cells, missing = collect_cells(metric_name, columns=PAPER_COLUMNS)
     draw_boxes(ax, cells, missing, labels=POLICY_LABELS_PAPER, columns=PAPER_COLUMNS)
     ax.set_ylabel(PAPER_YLABELS[metric_name])
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=3, steps=[1, 2, 5, 10]))
     ax.tick_params(length=2, pad=1.5)
 
 
-def _paper_legend(ax):
-    # Stacked in the upper right, where the "Ours" boxes leave room.
-    return _task_legend(ax, loc="upper right", frameon=True, framealpha=0.9,
-                        edgecolor="none", handlelength=1.0, handleheight=0.8,
-                        borderpad=0.3, labelspacing=0.2, borderaxespad=0.2,
-                        ncol=1)
+def _paper_legend(ax, headroom: float = 0.3):
+    """One-row task legend in the upper right, with the value axis extended by
+    ``headroom`` (fraction of the data range) so the legend sits above the data."""
+    lo, hi = ax.get_ylim()
+    ax.set_ylim(lo, hi + (hi - lo) * headroom)
+    return _task_legend(ax, loc="upper right", frameon=False,
+                        handlelength=1.0, handleheight=0.7, handletextpad=0.4,
+                        columnspacing=0.8, borderpad=0.1, borderaxespad=0.15)
 
 
 def plot_single_column() -> None:
     """Forces only, sized for one paper column at the paper's font size."""
     with plt.rc_context(PAPER_RC):
-        fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 1.7))
+        fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 1.35))
         _draw_paper(ax, "force")
         _paper_legend(ax)
         fig.tight_layout(pad=0.2)
@@ -457,10 +462,25 @@ def plot_single_column() -> None:
     print(f"Wrote plot to {SINGLE_COLUMN_OUTPUT_PATH}")
 
 
+def plot_stacked() -> None:
+    """Forces (top) over torques (bottom) with a shared policy axis, one column wide."""
+    with plt.rc_context(PAPER_RC):
+        fig, axes = plt.subplots(2, 1, figsize=(COLUMN_WIDTH_IN, 2.0), sharex=True)
+        for ax, metric_name in zip(axes, ("force", "torque")):
+            _draw_paper(ax, metric_name)
+        axes[0].tick_params(axis="x", labelbottom=False)
+        _paper_legend(axes[0])
+        fig.align_ylabels(axes)
+        fig.tight_layout(pad=0.2, h_pad=0.3)
+        fig.savefig(STACKED_OUTPUT_PATH)
+        plt.close(fig)
+    print(f"Wrote plot to {STACKED_OUTPUT_PATH}")
+
+
 def plot_combined() -> None:
     """Forces (left) and torques (right), sized for the full text width."""
     with plt.rc_context(PAPER_RC):
-        fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 1.6))
+        fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 1.3))
         for ax, metric_name in zip(axes, ("force", "torque")):
             _draw_paper(ax, metric_name)
         _paper_legend(axes[0])
@@ -476,6 +496,8 @@ def main() -> None:
         plot_metric(metric_name)
     print("=== single column ===")
     plot_single_column()
+    print("=== stacked ===")
+    plot_stacked()
     print("=== combined ===")
     plot_combined()
 
