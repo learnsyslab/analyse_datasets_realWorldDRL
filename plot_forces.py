@@ -66,7 +66,6 @@ PAPER_RC = {
     "boxplot.flierprops.markersize": 1.8,
     "boxplot.flierprops.markeredgewidth": 0.4,
     "boxplot.meanprops.markersize": 1.5,
-    "boxplot.meanprops.markeredgewidth": 0.3,
 }
 
 FT_COL = "observation.state.sensors_bota_ft_sensor"
