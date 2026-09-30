@@ -73,12 +73,12 @@ POLICY_LABELS = {
     "Ditflow": "DiTFlow",
 }
 OURS_JSON_LABEL = "Ours\n(push down)"
-# Two-line labels for horizontal layouts, where the policy names sit on the y-axis.
-POLICY_LABELS_COMPACT = {
+# Single-line labels for narrow layouts, where the tick labels are rotated.
+POLICY_LABELS_ROTATED = {
     **POLICY_LABELS,
-    "Pi05": "Finetuned\nPi05",
-    "Ditflow Novice": "DiTFlow\n(novice)",
+    "Ours (dataset)": "Ours (learned policy)",
 }
+OURS_JSON_LABEL_ROTATED = "Ours (push down)"
 
 # Baseline policy label -> task instance. Order here defines the x-axis order;
 # "Ours" is appended last from its eval results JSON (see OURS_JSON below).
@@ -308,16 +308,20 @@ def collect_cells(metric_name: str):
 
 
 def _format_label(label: str) -> str:
-    if label.startswith("Ours\n"):
+    if label.startswith("Ours"):
         return r"$\mathbf{Ours}$" + label[len("Ours"):]
     return label
 
 
-def draw_boxes(ax, cells, missing, horizontal: bool = False, labels=POLICY_LABELS) -> None:
+def draw_boxes(
+    ax, cells, missing, horizontal: bool = False, labels=POLICY_LABELS,
+    ours_json_label: str = OURS_JSON_LABEL, rotation: float = 0.0,
+) -> None:
     """Draw grouped gradient boxplots (one group per policy, one box per task).
 
     With ``horizontal=True`` policies run top -> bottom on the y-axis and the
-    metric is on the x-axis.
+    metric is on the x-axis. ``rotation`` tilts the policy tick labels
+    (vertical layout only).
     """
     n_tasks = len(TASKS)
     group_width = 0.8
@@ -361,7 +365,7 @@ def draw_boxes(ax, cells, missing, horizontal: bool = False, labels=POLICY_LABEL
                     fontsize=plt.rcParams["font.size"] * 0.7)
 
     tick_labels = [
-        _format_label(OURS_JSON_LABEL if col == OURS_JSON_KEY else labels.get(col, col))
+        _format_label(ours_json_label if col == OURS_JSON_KEY else labels.get(col, col))
         for col in CANONICAL_COLUMNS
     ]
     ticks = range(len(CANONICAL_COLUMNS))
@@ -372,7 +376,10 @@ def draw_boxes(ax, cells, missing, horizontal: bool = False, labels=POLICY_LABEL
         ax.grid(axis="x", alpha=0.3)
     else:
         ax.set_xticks(ticks)
-        ax.set_xticklabels(tick_labels)
+        if rotation:
+            ax.set_xticklabels(tick_labels, rotation=rotation, ha="right", rotation_mode="anchor")
+        else:
+            ax.set_xticklabels(tick_labels)
         ax.set_xlim(-0.5, len(CANONICAL_COLUMNS) - 0.5)
         ax.grid(axis="y", alpha=0.3)
 
@@ -401,16 +408,21 @@ def plot_metric(metric_name: str) -> None:
     print(f"Wrote plot to {cfg['output']}")
 
 
-def plot_single_column() -> None:
-    """Forces only, horizontal boxes, sized for one paper column."""
-    cells, missing = collect_cells("force")
+def _draw_rotated(ax, metric_name: str) -> None:
+    """Vertical boxes with rotated single-line policy labels (narrow layouts)."""
+    cells, missing = collect_cells(metric_name)
+    draw_boxes(ax, cells, missing, labels=POLICY_LABELS_ROTATED,
+               ours_json_label=OURS_JSON_LABEL_ROTATED, rotation=30)
+    ax.set_ylabel(METRICS[metric_name]["ylabel"])
 
+
+def plot_single_column() -> None:
+    """Forces only, vertical boxes, sized for one paper column."""
     fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 15))
-    draw_boxes(ax, cells, missing, horizontal=True, labels=POLICY_LABELS_COMPACT)
-    ax.set_xlabel(METRICS["force"]["ylabel"].replace("\n", " "))
-    _task_legend(fig, loc="upper center", bbox_to_anchor=(0.5, 1.0),
+    _draw_rotated(ax, "force")
+    _task_legend(ax, loc="lower center", bbox_to_anchor=(0.5, 1.0),
                  frameon=False, handlelength=1.2, columnspacing=1.0)
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.tight_layout()
     fig.savefig(SINGLE_COLUMN_OUTPUT_PATH)
     plt.close(fig)
     print(f"Wrote plot to {SINGLE_COLUMN_OUTPUT_PATH}")
@@ -418,14 +430,11 @@ def plot_single_column() -> None:
 
 def plot_combined() -> None:
     """Forces (left) and torques (right) side by side, sized for the full text width."""
-    fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 13), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 11))
     for ax, metric_name in zip(axes, ("force", "torque")):
-        cells, missing = collect_cells(metric_name)
-        draw_boxes(ax, cells, missing, horizontal=True, labels=POLICY_LABELS_COMPACT)
-        ax.set_xlabel(METRICS[metric_name]["ylabel"].replace("\n", " "))
-    axes[1].tick_params(axis="y", left=False)
+        _draw_rotated(ax, metric_name)
     _task_legend(fig, loc="upper center", bbox_to_anchor=(0.5, 1.0), frameon=False)
-    fig.tight_layout(rect=(0, 0, 1, 0.9))
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
     fig.savefig(COMBINED_OUTPUT_PATH)
     plt.close(fig)
     print(f"Wrote plot to {COMBINED_OUTPUT_PATH}")
