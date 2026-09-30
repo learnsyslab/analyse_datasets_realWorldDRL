@@ -42,10 +42,23 @@ TORQUE_OUTPUT_PATH = REPO_ROOT / "torques_boxplot.pdf"
 SINGLE_COLUMN_OUTPUT_PATH = REPO_ROOT / "forces_boxplot_single_column.pdf"
 COMBINED_OUTPUT_PATH = REPO_ROOT / "forces_torques_boxplot.pdf"
 
-# Figures are drawn at 5x scale (see font.size above): a 40 in wide figure maps
-# to the paper's \textwidth (516 pt), so a single column (252 pt) is ~19.5 in.
-TEXT_WIDTH_IN = 40
-COLUMN_WIDTH_IN = TEXT_WIDTH_IN * 252 / 516
+# The paper-sized figures below are drawn at true scale (1 in = 1 in in the PDF)
+# in the paper's body font (IEEEtran: 10 pt Times), overriding the 5x-scale
+# rcParams above via PAPER_RC.
+TEXT_WIDTH_IN = 516 / 72
+COLUMN_WIDTH_IN = 252 / 72
+PAPER_RC = {
+    "font.size": 10,
+    "font.family": "serif",
+    "font.serif": ["Nimbus Roman", "Times New Roman", "Times", "Liberation Serif"],
+    "mathtext.fontset": "stix",
+    "axes.linewidth": 0.6,
+    "lines.linewidth": 0.8,
+    "xtick.major.width": 0.6,
+    "ytick.major.width": 0.6,
+    "boxplot.flierprops.markersize": 2.5,
+    "boxplot.meanprops.markersize": 3,
+}
 
 FT_COL = "observation.state.sensors_bota_ft_sensor"
 
@@ -73,12 +86,13 @@ POLICY_LABELS = {
     "Ditflow": "DiTFlow",
 }
 OURS_JSON_LABEL = "Ours\n(push down)"
-# Single-line labels for narrow layouts, where the tick labels are rotated.
-POLICY_LABELS_ROTATED = {
+# Two-line labels for the paper-sized figures (five columns per single column).
+POLICY_LABELS_PAPER = {
     **POLICY_LABELS,
-    "Ours (dataset)": "Ours (learned policy)",
+    "Pi05": "Finetuned\nPi05",
+    "Ditflow Novice": "DiTFlow\n(novice)",
+    "Ours (dataset)": "Ours",
 }
-OURS_JSON_LABEL_ROTATED = "Ours (push down)"
 
 # Baseline policy label -> task instance. Order here defines the x-axis order;
 # "Ours" is appended last from its eval results JSON (see OURS_JSON below).
@@ -118,6 +132,9 @@ CANONICAL_COLUMNS = (
     "Ours (dataset)",
     OURS_JSON_KEY,
 )
+
+# Paper-sized figures drop the push-down column (planned motion, not a policy).
+PAPER_COLUMNS = tuple(c for c in CANONICAL_COLUMNS if c != OURS_JSON_KEY)
 
 TASKS = {
     "Fan cover": {
@@ -286,7 +303,7 @@ def collect_peaks(column_key: str, task_entry: dict, cfg: dict) -> list[float] |
     return peaks
 
 
-def collect_cells(metric_name: str):
+def collect_cells(metric_name: str, columns=CANONICAL_COLUMNS):
     """Collect per-episode peaks for every (column, task) cell of one metric.
 
     Returns ``(cells, missing)`` with ``cells`` = [(column_idx, task_idx, task, vals)]
@@ -295,7 +312,7 @@ def collect_cells(metric_name: str):
     cfg = METRICS[metric_name]
     cells: list[tuple[int, int, str, list[float]]] = []
     missing: list[tuple[int, int]] = []
-    for c, col in enumerate(CANONICAL_COLUMNS):
+    for c, col in enumerate(columns):
         col_label = OURS_JSON_LABEL if col == OURS_JSON_KEY else col
         for i, tname in enumerate(TASKS):
             print(f"  [{col_label}] {tname}...", flush=True)
@@ -316,6 +333,7 @@ def _format_label(label: str) -> str:
 def draw_boxes(
     ax, cells, missing, horizontal: bool = False, labels=POLICY_LABELS,
     ours_json_label: str = OURS_JSON_LABEL, rotation: float = 0.0,
+    columns=CANONICAL_COLUMNS,
 ) -> None:
     """Draw grouped gradient boxplots (one group per policy, one box per task).
 
@@ -343,7 +361,7 @@ def draw_boxes(
         _fill_box_with_gradient(ax, bp["boxes"][0], TASKS[tname]["gradient"], horizontal)
 
     separator = ax.axhline if horizontal else ax.axvline
-    for x in range(1, len(CANONICAL_COLUMNS)):
+    for x in range(1, len(columns)):
         separator(x - 0.5, color="grey", linewidth=0.8, alpha=0.4, zorder=0)
 
     # Set value limits ourselves (imshow gradient fills clobber autoscale).
@@ -366,13 +384,13 @@ def draw_boxes(
 
     tick_labels = [
         _format_label(ours_json_label if col == OURS_JSON_KEY else labels.get(col, col))
-        for col in CANONICAL_COLUMNS
+        for col in columns
     ]
-    ticks = range(len(CANONICAL_COLUMNS))
+    ticks = range(len(columns))
     if horizontal:
         ax.set_yticks(ticks)
         ax.set_yticklabels(tick_labels)
-        ax.set_ylim(len(CANONICAL_COLUMNS) - 0.5, -0.5)  # first policy on top
+        ax.set_ylim(len(columns) - 0.5, -0.5)  # first policy on top
         ax.grid(axis="x", alpha=0.3)
     else:
         ax.set_xticks(ticks)
@@ -380,16 +398,16 @@ def draw_boxes(
             ax.set_xticklabels(tick_labels, rotation=rotation, ha="right", rotation_mode="anchor")
         else:
             ax.set_xticklabels(tick_labels)
-        ax.set_xlim(-0.5, len(CANONICAL_COLUMNS) - 0.5)
+        ax.set_xlim(-0.5, len(columns) - 0.5)
         ax.grid(axis="y", alpha=0.3)
 
 
 def _task_legend(target, **kwargs):
     handles = [_GradientHandle(TASKS[t]["gradient"], t) for t in TASKS]
+    kwargs.setdefault("ncol", len(handles))
     return target.legend(
         handles=handles,
         handler_map={_GradientHandle: _GradientHandler()},
-        ncol=len(handles),
         **kwargs,
     )
 
@@ -408,35 +426,47 @@ def plot_metric(metric_name: str) -> None:
     print(f"Wrote plot to {cfg['output']}")
 
 
-def _draw_rotated(ax, metric_name: str) -> None:
-    """Vertical boxes with rotated single-line policy labels (narrow layouts)."""
-    cells, missing = collect_cells(metric_name)
-    draw_boxes(ax, cells, missing, labels=POLICY_LABELS_ROTATED,
-               ours_json_label=OURS_JSON_LABEL_ROTATED, rotation=30)
-    ax.set_ylabel(METRICS[metric_name]["ylabel"])
+PAPER_YLABELS = {"force": "Max. force [N]", "torque": "Max. torque [Nm]"}
+
+
+def _draw_paper(ax, metric_name: str) -> None:
+    """One paper-sized panel: vertical boxes, two-line labels, no push-down column."""
+    cells, missing = collect_cells(metric_name, columns=PAPER_COLUMNS)
+    draw_boxes(ax, cells, missing, labels=POLICY_LABELS_PAPER, columns=PAPER_COLUMNS)
+    ax.set_ylabel(PAPER_YLABELS[metric_name])
+    ax.tick_params(length=2, pad=1.5)
+
+
+def _paper_legend(ax):
+    # Stacked in the upper right, where the "Ours" boxes leave room.
+    return _task_legend(ax, loc="upper right", frameon=True, framealpha=0.9,
+                        edgecolor="none", handlelength=1.0, handleheight=0.8,
+                        borderpad=0.3, labelspacing=0.2, borderaxespad=0.2,
+                        ncol=1)
 
 
 def plot_single_column() -> None:
-    """Forces only, vertical boxes, sized for one paper column."""
-    fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 15))
-    _draw_rotated(ax, "force")
-    _task_legend(ax, loc="lower center", bbox_to_anchor=(0.5, 1.0),
-                 frameon=False, handlelength=1.2, columnspacing=1.0)
-    fig.tight_layout()
-    fig.savefig(SINGLE_COLUMN_OUTPUT_PATH)
-    plt.close(fig)
+    """Forces only, sized for one paper column at the paper's font size."""
+    with plt.rc_context(PAPER_RC):
+        fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 1.7))
+        _draw_paper(ax, "force")
+        _paper_legend(ax)
+        fig.tight_layout(pad=0.2)
+        fig.savefig(SINGLE_COLUMN_OUTPUT_PATH)
+        plt.close(fig)
     print(f"Wrote plot to {SINGLE_COLUMN_OUTPUT_PATH}")
 
 
 def plot_combined() -> None:
-    """Forces (left) and torques (right) side by side, sized for the full text width."""
-    fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 11))
-    for ax, metric_name in zip(axes, ("force", "torque")):
-        _draw_rotated(ax, metric_name)
-    _task_legend(fig, loc="upper center", bbox_to_anchor=(0.5, 1.0), frameon=False)
-    fig.tight_layout(rect=(0, 0, 1, 0.92))
-    fig.savefig(COMBINED_OUTPUT_PATH)
-    plt.close(fig)
+    """Forces (left) and torques (right), sized for the full text width."""
+    with plt.rc_context(PAPER_RC):
+        fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 1.6))
+        for ax, metric_name in zip(axes, ("force", "torque")):
+            _draw_paper(ax, metric_name)
+        _paper_legend(axes[0])
+        fig.tight_layout(pad=0.2, w_pad=1.0)
+        fig.savefig(COMBINED_OUTPUT_PATH)
+        plt.close(fig)
     print(f"Wrote plot to {COMBINED_OUTPUT_PATH}")
 
 
